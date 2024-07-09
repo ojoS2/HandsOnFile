@@ -1,0 +1,11 @@
+unstructured
+language_tool_python
+deep_translator
+re
+numpy
+os
+string
+PyPDF2
+distutilsshutil
+textwrap
+awkward

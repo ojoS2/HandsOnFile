@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: HandsOnFile
+Version: 0.0.1
+Summary: A package to organize and translate pdfs
+Author: Ricardo
+Author-email: ojogodascontasdevidro@gmail.com
+License: MIT
+Classifier: Development Status :: 1 - Gama
+Classifier: License ::  MIT License
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Text Processing :: Linguistic
+Requires-Python: >=3.6
+License-File: LICENSE
+Requires-Dist: unstructured
+Requires-Dist: language_tool_python
+Requires-Dist: deep_translator
+Requires-Dist: re
+Requires-Dist: numpy
+Requires-Dist: os
+Requires-Dist: string
+Requires-Dist: PyPDF2
+Requires-Dist: distutilsshutil
+Requires-Dist: textwrap
+Requires-Dist: awkward
