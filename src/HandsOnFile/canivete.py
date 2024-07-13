@@ -54,17 +54,16 @@ def cleaning_with_regex(string):
     '''
     #Limpando titulos do tipo [A B C D]
     string = re.sub(r'[A-Z]\s[A-Z]\s[A-Z]+', '', string)
+    # Limpando numeros como 9 8 0 9 8
     string = re.sub(r'[0-9]\s[0-9]\s[0-9]+', '', string)
-    #transformando sentenças do tipo aAa em a aa 
+    #transformando sentenças do tipo aAa em aaa 
     string = re.sub("([a-z])([A-Z])([a-z])", lambda pat: (pat.group(1) + ' ' + pat.group(2).lower() + pat.group(3)), string)
-    #transformando sentenças do tipo a.Aa em a. \n\nA 
-    string = re.sub("(.)([A-Z])", r"\1 \n\n\2", string)
-    #transformando sentenças do tipo a-a em aa
-    string = re.sub("([a-z])-([A-Z])", r'\1\2', string)
+    #transformando sentenças do tipo a.Aa em a. \n A 
+    string = re.sub("([a-z])([.!?])([A-Z])", r"\1 \2 \n \3", string)
     #transformando sentenças do tipo a-A em aa
     string = re.sub("([a-z])-([A-Z])", lambda pat: (pat.group(1) + pat.group(2).lower()), string)
-    
-    return string
+    #transformando sentenças do tipo a- a em aa
+    string = re.sub("([a-z])-\s+([a-z])", r'\1\2', string)
 
 def build_string_vectors():
     '''
@@ -162,9 +161,13 @@ def include_citations(corpus, ref_list):
         corpus = corpus + text + ' ' + ref + ' '
     return corpus
 
-def filter_matches(rule):
+def filter_matches_portugues(rule):
     '''Filtro simples dos erros ortográficos a serem ignorados, como por exemplo a correção de nomes próprios.'''
     return rule.message == 'Encontrado possível erro de ortografia.' and len(rule.replacements) and rule.replacements[0][0].isupper()
+
+def filter_matches_english(rule):
+    '''Filtro simples dos erros ortográficos a serem ignorados, como por exemplo a correção de nomes próprios.'''
+    return rule.message == 'Possible spelling mistake found.' and len(rule.replacements) and rule.replacements[0][0].isupper()
 
 def get_LaTex_sintaxe(data):
     '''
@@ -280,10 +283,14 @@ def get_flags_back(data, saved_lists, flags_list):
     return data
 
 def naive_refence(string):
-    new = re.sub(r'([\s\.])(\d{1})([\s\.\)])', r'\1{\\color{blue} \2 }\3', string)
-    new = re.sub(r'([\s\.])(\d{2})([\s\.\)])', r'\1{\\color{blue} \2 }\3', new)
-    new = re.sub(r'([\s\.])(\d{3})([\s\.\)])', r'\1{\\color{blue} \2 }\3', new)
+    new = re.sub(r'([\s\.])(\d{1})([\s\.\)])', r'\1{\\color{blue}\2}\3', string)
+    new = re.sub(r'([\s\.”\t])\s*(\d{1})$', r'\1{\\color{blue}\2}', new)
+    new = re.sub(r'([\s\.])(\d{2})([\s\.\)])', r'\1{\\color{blue}\2}\3', new)
+    new = re.sub(r'([\s\.”\t])\s*(\d{2})$', r'\1{\\color{blue}\2}', new)
+    new = re.sub(r'([\s\.])(\d{3})([\s\.\)])', r'\1{\\color{blue}\2}\3', new)
+    new = re.sub(r'([\s\.”\t])\s*(\d{3})$', r'\1{\\color{blue}\2}', new)
     # not taken references
     new = re.sub(r'([\.”])\s*(\d+)\s*\}', r'\1 {\\color{blue} \2 } }', new)
     new = re.sub(r'([\.”])\s*(\d+)\s*([,A-Z])', r'\1 {\\color{blue} \2 } {\\par} \3', new)
     return new
+

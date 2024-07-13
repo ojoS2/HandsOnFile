@@ -3,8 +3,8 @@ from shutil import rmtree, copyfile
 from PyPDF2 import PdfWriter, PdfReader
 from unstructured.partition.pdf import partition_pdf
 from string import ascii_uppercase, ascii_lowercase
-from translate_unity import sentences_checking, translate_snippet, port_checking
-from canivete import naive_refence
+from translate_unity import sentences_checking, translate_snippet, init_engines, text_checking
+from canivete import naive_refence, cleaning_with_regex, print_to_file
 import os
 import unstructured
 import re
@@ -306,6 +306,201 @@ def close_cap(beginning, ending):
         close_pages(number)
     return None
 
+def join_text_list(vec):
+    joined = []
+    for idx in range(len(vec)-1):
+        item = vec[idx]
+        next = vec[idx + 1]
+        if len(item) == 0:
+            continue
+        elif  not item[-1] == '.' and next[0] in ascii_lowercase:
+            joined.append(item + ' ' + next)
+            vec[idx+1] = ''
+        else:
+            joined.append(item)
+    joined.append(vec[-1])
+    return joined
+
+def clean_text_list(vec):
+    clean = []
+    for item in vec:
+        if item == "TTTTTT" or item == "EEEEEE" or item == "FFFFFF" or item == "SSSSSS":
+            clean.append(item)
+        else:
+            item = re.sub("([a-z])-\s+([a-z])", r'\1\2', item)
+            clean.append(item)
+    return clean
+
+
+class page():
+    def __init__(self):
+        self.Title = []
+        self.Text = []
+        self.Footnote = []
+        self.Special = []
+        self.Epigraph = []
+        self.Epigraph_citation = []
+        self.Corpus = []
+
+    def add_main_elements(self, path, raw = False):
+        elements = partition_pdf(path)
+        for el, typ in zip([el.text for el in elements], [type(el) for el in elements]):
+            if typ == unstructured.documents.elements.Title:
+                if not el.isnumeric() and len(el) > 4:
+                    temp = (el.lstrip()).rstrip()
+                    if not temp in self.Title:
+                        self.Text.append("TTTTTT")
+                        self.Title.append(temp)
+            elif typ == unstructured.documents.elements.NarrativeText:
+                    self.Text.append((el.lstrip()).rstrip())
+        if not raw:        
+            self.Text = join_text_list(self.Text)
+            self.Text = clean_text_list(self.Text)
+            
+    def add_footnotes(self, footnote_list, len_flag):
+        text = []
+        for el in self.Text:
+            if el[:len_flag] in footnote_list:
+                self.Footnote.append(el)
+                text.append("FFFFFF")
+            else:
+                text.append(el)
+        self.Text = text
+
+    def add_special(self, special_list, len_flag):
+        text = []
+        for el in self.Text:
+            if el[:len_flag] in special_list:
+                self.Special.append(el)
+                text.append("SSSSSS")
+            else:
+                text.append(el)
+        self.Text = text
+
+    def add_epigraph(self, epigraph_list, len_flag):
+        text = []
+        for el in self.Text:
+            if el[:len_flag] in epigraph_list:
+                self.Epigraph.append(el)
+                text.append("EEEEEE")
+            else:
+                text.append(el)
+        self.Text = text
+
+    def correct_text(self, language = 'en'):
+        engine = init_engines(language)
+        corrected = []
+        for sentence in self.Text:
+            corrected.append(text_checking(sentence, engine, language))
+        self.Text = clean_text_list(corrected)
+        corrected = []
+        for sentence in self.Title:
+            corrected.append(text_checking(sentence, engine, language))
+        self.Title = clean_text_list(corrected)
+        corrected = []
+        for sentence in self.Footnote:
+            corrected.append(text_checking(sentence, engine, language))
+        self.Footnote = clean_text_list(corrected)
+        corrected = []
+        for sentence in self.Epigraph:
+            corrected.append(text_checking(sentence, engine, language))
+        self.Epigraph = clean_text_list(corrected)
+        corrected = []
+        for sentence in self.Special:
+            corrected.append(text_checking(sentence, engine, language))
+        self.Special = clean_text_list(corrected)
+
+    def translate_text(self, language = 'pt', mode = 'Text'):
+        mode = mode.lower()
+        if mode == 'text':
+            translated = []
+            for sentence in self.Text:
+                if sentence == 'TTTTTT' or 'EEEEEE' or 'SSSSSS' or 'FFFFFF':
+                    translated.append(sentence)
+                else:
+                    translated.append(translate_snippet(sentence, language = language))
+            self.Text = translated
+        elif mode == 'title':
+            translated = []
+            for sentence in self.Title:
+                translated.append(translate_snippet(sentence, language = language))
+            self.Title = translated
+        elif mode == 'footnote':
+            translated = []
+            for sentence in self.Footnote:
+                translated.append(translate_snippet(sentence, language = language))
+            self.Footnote = translated
+        elif mode == 'epigraph':
+            translated = []
+            for sentence in self.Epigraph:
+                translated.append(translate_snippet(sentence, language = language))
+            self.Epigraph = translated
+        elif mode == 'special':
+            translated = []
+            for sentence in self.Special:
+                translated.append(translate_snippet(sentence, language = language))
+            self.Special = translated
+        else:
+            print('Opção desconhecia para tradução, as opções atuais são [text, title, footnote, epigraph, special], digite uma das opções e tente novamente')
+            return None
+
+    def write_latex(self):
+        corpus = []
+        chap_title_flag = True
+        if len(self.Epigraph) > 0:
+            epigraph_flag = True
+        else:
+            epigraph_flag = False
+        idx_title = 0
+        idx_footnote = 0
+        idx_epigraph = 0
+        idx_special = 0
+        for item in self.Text:
+            if item == 'TTTTTT':
+                if chap_title_flag:
+                    chap_title_flag = False
+                    temp = '\chapter{' + self.Title[idx_title] + '}' + '\label{' + self.Title[idx_title] + '}'
+                    corpus.append(temp)
+                    idx_title = idx_title + 1
+                elif epigraph_flag:
+                    epigraph_flag = False
+                    temp = '\\textbf{\\textit{' + self.Title[idx_title] + '} }'
+                    corpus.append(temp)
+                    idx_title = idx_title + 1
+            elif item == 'FFFFFF':
+                temp = '\\footnote{' + self.Footnote[idx_footnote] + '}' 
+                corpus.append(temp)
+                idx_footnote = idx_footnote + 1
+            elif item == 'EEEEEE':
+                temp = '\\textit{' + self.Epigraph[idx_epigraph] + '}' 
+                corpus.append(temp)
+                idx_epigraph = idx_epigraph + 1
+            elif item == 'SSSSSS':
+                temp = naive_refence(self.Special[idx_special]) 
+                corpus.append('\\textit\\textbf{ {' + temp + '} }')
+                idx_special = idx_special + 1
+            else:
+                temp = naive_refence(item) 
+                corpus.append(temp)
+        self.Corpus = '\n \par \n'.join(corpus)
+
+    def corpus_to_file(self, path):
+        print_to_file(path_to_save = path,
+                       string = self.Corpus)
+
+class chapter():
+    pass
 
 
 
+'''
+text = 'A pesquisa em economia política marxista é promovida pelo IIPPE (www.iippe.org) e apoiada por revistas como Capital & Class, Historical Materialism, Monthly Review, Review of Radical Political Economics e Science & Society. Finalmente, para economia, notícias e análises heterodoxas (incluindo marxistas), consulte www.heterodoxnews.com.'
+
+engine = init_engines(engine='pt')
+
+for item in engine.check(text):
+    print('\n')
+    print(item.message)
+    print(item.replacements)
+    print(item.replacements[0][0].isupper())
+'''

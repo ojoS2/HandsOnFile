@@ -9,26 +9,53 @@
 import language_tool_python as ltp
 import deep_translator as dt
 import re
-from canivete import filter_matches, get_LaTex_sintaxe, get_flags_back
+from canivete import filter_matches_portugues, filter_matches_english, get_LaTex_sintaxe, get_flags_back
 
-def init_engines():
-    tool_en = ltp.LanguageTool('en-US')
-    tool_po = ltp.LanguageTool('pt-BR')
-    return tool_en, tool_po
+def init_engines(engine=None):
+    if engine is None:
+        return ltp.LanguageTool('en-US'), ltp.LanguageTool('pt-BR')
+    elif engine == 'en':
+        return ltp.LanguageTool('en-US')
+    elif engine == 'pt':
+        return ltp.LanguageTool('pt-BR')
+    else:
+        print("Opção não conhecida.\n\t Digite en para inglês (US) \n\t Digite pt para português (Br) \n\t ou None para ambos\n")
+        engine = input('')
+        return init_engines(engine)
+
 
 def sentences_checking(engine, text):
     correct = engine.correct(text)
     return correct
 
-def select_translation_rules(engine, string):
+def select_translation_rules(engine, string, mode = 'en'):
     matches = engine.check(string)
-    return [rule for rule in matches if not filter_matches(rule)]
+    if mode == 'en':
+        return [rule for rule in matches if not filter_matches_english(rule)]
+    elif mode == 'pt':
+        return [rule for rule in matches if not filter_matches_portugues(rule)]
+    else:
+        print("Opção desconhecida para o argumento mode!\n\t digite en para inglês \n\t ou pt para português")
+        mode = input('')
+        return select_translation_rules(engine, string, mode)
+
+def text_checking(text, engine, mode = 'en'):
+    return ltp.utils.correct(text, select_translation_rules(engine = engine,
+                                                            string = text,
+                                                            mode = mode))
 
 def port_checking(text, engine):
-    return ltp.utils.correct(text, select_translation_rules(engine = engine, string = text))
+    return ltp.utils.correct(text, select_translation_rules(engine = engine,
+                                                            string = text,
+                                                            mode = 'pt'))
 
-def translate_snippet(text):
-    translated = dt.GoogleTranslator(source='auto', target='portuguese').translate(text)
+def engl_checking(text, engine):
+    return ltp.utils.correct(text, select_translation_rules(engine = engine,
+                                                            string = text,
+                                                            mode = 'en'))
+
+def translate_snippet(text, language = 'pt'):
+    translated = dt.GoogleTranslator(source='auto', target=language).translate(text)
     return translated
 
 def process_LaTex_list(text_list):
