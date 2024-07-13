@@ -415,7 +415,10 @@ class page():
         if mode == 'text':
             translated = []
             for sentence in self.Text:
-                if sentence == 'TTTTTT' or 'EEEEEE' or 'SSSSSS' or 'FFFFFF':
+                if sentence == 'TTTTTT' or \
+                   sentence == 'EEEEEE' or \
+                   sentence == 'SSSSSS' or \
+                    sentence == 'FFFFFF':
                     translated.append(sentence)
                 else:
                     translated.append(translate_snippet(sentence, language = language))
@@ -445,6 +448,7 @@ class page():
             return None
 
     def write_latex(self):
+        self.Corpus = ''
         corpus = []
         chap_title_flag = True
         if len(self.Epigraph) > 0:
@@ -488,19 +492,125 @@ class page():
         print_to_file(path_to_save = path,
                        string = self.Corpus)
 
+
 class chapter():
-    pass
+    len_flag = 10
+    def __init__(self, book_path, 
+                 epigraphs = None,
+                 footnotes = None,
+                 specials = None):
+        self.Path = book_path
+        if epigraphs is not None:
+            self.Epigraph_list = epigraphs
+        else: 
+            self.include_list(self, mode = 'epigraph')
+        if footnotes is not None:
+            self.Footnote_list = footnotes
+        else: 
+            self.include_list(self, mode = 'footnote')
+        if specials is not None:
+            self.Special_list = specials
+        else: 
+            self.include_list(self, mode = 'special')
 
+    def include_list(self, mode, List = None):
+        mode = mode.lower()
+        if mode == 'epigraph':
+            if List is None:
+                List = []
+                item = 'A'
+                while True:
+                    item = input('Entre com o começo do epigrafo a ser destacado do texto ou [Enter] para encerrar:\n')
+                    if len(item) == 0:
+                        break
+                    List.append(item)
+            self.Epigraph_list = [item[:chapter.len_flag] for item in List]
+            self.Epigraph_list = List
+            print("Lista de termos selecionados:\n")
+            for item in self.Epigraph_list:
+                print(item)
+        elif mode == 'footnote':
+            if List is None:
+                List = []
+                item = 'A'
+                while True:
+                    item = input('Entre com o começo da nota de rodapé a ser destacada do texto ou [Enter] para encerrar:\n')
+                    if len(item) == 0:
+                        break
+                    List.append(item)
+            self.Footnote_list = [item[:chapter.len_flag] for item in List]
+            self.Footnote_list = List
+            print("Lista de termos selecionados:\n")
+            for item in self.Footnote_list:
+                print(item)
+        elif mode == 'special':
+            if List is None:
+                List = []
+                item = 'A'
+                while True:
+                    item = input('Entre com o começo do texto a ser destacada do texto ou [Enter] para encerrar:\n')
+                    if len(item) == 0:
+                        break
+                    List.append(item)
+            self.Special__list = [item[:chapter.len_flag] for item in List]
+            self.Special_list = List
+            print("Lista de termos selecionados:\n")
+            for item in self.Special_list:
+                print(item)
 
+    def chap_to_file(self, chap_pages_list, mode='both', 
+                      path_to_save_en = 'temp_files/sections/transposed/test.tex',
+                      path_to_save_pt = 'temp_files/sections/translated/test.tex'):
+        Chap = page()
+        for path in chap_pages_list:
+            Chap.add_main_elements(path, raw=True)
+        Chap.add_footnotes(self.Footnote_list, chapter.len_flag)
+        Chap.add_epigraph(self.Epigraph_list, chapter.len_flag)
+        Chap.add_special(self.Special_list, chapter.len_flag)
+        Chap.correct_text(language = 'en')
+        if mode == 'en':
+            Chap.write_latex()
+            Chap.corpus_to_file(path = path_to_save_en)
+        elif mode == 'pt':
+            Chap.translate_text(language = 'pt', mode = 'Title')
+            Chap.translate_text(language = 'pt', mode = 'Text')
+            Chap.translate_text(language = 'pt', mode = 'Footnote')
+            Chap.translate_text(language = 'pt', mode = 'Epigraph')
+            Chap.translate_text(language = 'pt', mode = 'Special')
+            Chap.write_latex()
+            Chap.corpus_to_file(path = path_to_save_pt)
+        elif mode == 'both':
+            Chap.write_latex()
+            Chap.corpus_to_file(path = path_to_save_en)
+            Chap.translate_text(language = 'pt', mode = 'Title')
+            Chap.translate_text(language = 'pt', mode = 'Text')
+            Chap.translate_text(language = 'pt', mode = 'Footnote')
+            Chap.translate_text(language = 'pt', mode = 'Epigraph')
+            Chap.translate_text(language = 'pt', mode = 'Special')
+            Chap.write_latex()
+            Chap.corpus_to_file(path = path_to_save_pt)
+        
+    def write_chapter(self, init_page, end_page, path_to_save_en, path_to_save_pt):
+        path_list = open_page(doc_path = self.Path,
+                              pages_to_open = [i for i in range(init_page, end_page + 1)])
+        self.chap_to_file(chap_pages_list = path_list,
+                          path_to_save_en=path_to_save_en,
+                          path_to_save_pt=path_to_save_pt)
+        for idx in range(init_page, end_page+1):
+            close_pages(idx, mode='page')
 
-'''
-text = 'A pesquisa em economia política marxista é promovida pelo IIPPE (www.iippe.org) e apoiada por revistas como Capital & Class, Historical Materialism, Monthly Review, Review of Radical Political Economics e Science & Society. Finalmente, para economia, notícias e análises heterodoxas (incluindo marxistas), consulte www.heterodoxnews.com.'
+        
+footnote_list = ["This chapter originally"]
+epigraph_list = ['Whoever ﬁ gets monsters should']
+special_list = ['But it may be truly said, that men', 'I have been much concerned that',
+                'You start out in 1954 by saying', 'all these things you’re talking',
+                'I’m not saying that. But I’m saying']
 
-engine = init_engines(engine='pt')
-
-for item in engine.check(text):
-    print('\n')
-    print(item.message)
-    print(item.replacements)
-    print(item.replacements[0][0].isupper())
-'''
+Chap = chapter(book_path='data/example_files/The Reactionary Mind_ Conservatism from Edmund Burke to Sarah Palin.pdf',
+               epigraphs=epigraph_list,
+               footnotes=footnote_list,
+               specials=special_list)
+Chap.write_chapter(init_page=55,
+                   end_page=75,
+                   path_to_save_en='temp_files/sections/transposed/test.tex',
+                   path_to_save_pt='temp_files/sections/translated/test.tex')

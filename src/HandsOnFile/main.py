@@ -175,7 +175,6 @@ path = pdf_u.open_page(doc_path = 'data/example_files/The Reactionary Mind_ Cons
                             pages_to_open = [i for i in range(55, 75)])
 
 
-
 footnote_list = ["This chapter originally"]
 epigraph_list = ['Whoever ﬁ gets monsters should']
 special_list = ['But it may be truly said, that men', 'I have been much concerned that',
@@ -197,12 +196,16 @@ Chap.add_special(special_list, len_flag)
 Chap.correct_text(language = 'en')
 Chap.write_latex()
 Chap.corpus_to_file(path = 'temp_files/sections/transposed/test.tex')
-#print(Chap.Corpus)
-#Chap.translate_text(language = 'pt', mode = 'Title')
-#Chap.translate_text(language = 'pt', mode = 'Text')
-#Chap.translate_text(language = 'pt', mode = 'Footnote')
-#Chap.translate_text(language = 'pt', mode = 'Epigraph')
-#Chap.translate_text(language = 'pt', mode = 'Special')
+Chap.translate_text(language = 'pt', mode = 'Title')
+Chap.translate_text(language = 'pt', mode = 'Text')
+Chap.translate_text(language = 'pt', mode = 'Footnote')
+Chap.translate_text(language = 'pt', mode = 'Epigraph')
+Chap.translate_text(language = 'pt', mode = 'Special')
+Chap.write_latex()
+Chap.corpus_to_file(path = 'temp_files/sections/translated/test.tex')
+
+
+
 #Chap.correct_text(language = 'pt')
 #Chap.write_to_file(path='./teste.tex')
 
