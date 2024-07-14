@@ -23,11 +23,11 @@ def include_chapter(name, corpus, path):
     print_to_file(path_to_save = path + "/" + name + ".tex", string = corpus)
     return None
 
-def wrap_up_main(include_list, main_path):
+def wrap_up_main(include_list, main_path, autor, titulo, sub_titulo):
     
-    autor = "Corey Robin"
-    titulo = "A mente reacionária"
-    sub_titulo = "Conservadorismo: de Edmund Burke até Sarah Palin"
+    #autor = "Corey Robin"
+    #titulo = "A mente reacionária"
+    #sub_titulo = "Conservadorismo: de Edmund Burke até Sarah Palin"
     begining = '\\documentclass{novel}' + '\n' + \
     '\\lang      {portuguese}' + '\n' + \
     '\\title     {' + '{x}'.format(x = titulo) + '}\n' + \
@@ -38,9 +38,9 @@ def wrap_up_main(include_list, main_path):
     '\\isbn      {--}' + \
     '\\publisher {--}' + \
     '\\edition   {1}{2024}' + \
-    "\\dedicate  {para Laura}{--}" + \
-    '%\\thank     {Thank you to me for being the best}' + '\n' + \
-    '%\\keywords  {fiction, template, packages}' + '\n'
+    "\\dedicate  { }{--}" + \
+    '%\\thank     {Uma tarefa execultada pelo grupo de T.I da Unidade Popular pelo Socialismo}' + '\n' + \
+    '%\\keywords  { }' + '\n'
 
     include = ''
     for item in include_list:
@@ -48,6 +48,8 @@ def wrap_up_main(include_list, main_path):
     ending = '\\end{document}'
 
     main = begining + include + ending
-    print(main)
     print_to_file(main_path + '/main.tex', main)
+    print(main)
+    print('\n Escrito em:\t' + main_path + '/main.tex')
+    
 

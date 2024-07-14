@@ -8,7 +8,7 @@ from canivete import naive_refence, cleaning_with_regex, print_to_file
 import os
 import unstructured
 import re
-
+import gc
 
 
 def get_file():
@@ -234,7 +234,7 @@ def cap_pages(file_path,
                     chapter_text = chapter_text + sentences_checking(engine, item_text)
     return chapter_text
 
-def references_list(file_path):
+def references_list(file_path, language):
     '''
         Função simples que toma uma pagina de referencias e retorna a enumeração das referencias
     apresentadas. Recebe um argumento e retorna um string
@@ -246,7 +246,7 @@ def references_list(file_path):
     for item in elements:
         item_type = type(item)
         try:
-            item_text = port_checking(translate_snippet(item.text))
+            item_text = translate_snippet(item, language = language)
         except:
             item_text = item.text
         if item_type == unstructured.documents.elements.ListItem:
@@ -259,15 +259,18 @@ def references_list(file_path):
         elif item_type == unstructured.documents.elements.Title:
             references_list = references_list + '\n\n\n' + '\\section{' +\
                                 item_text + '}'
+    references_list = re.sub('\.\s+(\d{1,3})\.',
+                             '.\n\n\n\t{color{blue}' + r'\1' + '}.',
+                             references_list)
     return references_list
 
-def get_refrences(path, beginning, ending):
+def get_refrences(path, beginning, ending, language):
     corpus = ''
     for i in range(beginning, ending+1):
         page = open_page(path, i)
         print("Analisando referencias contidas na página:\t", page)
         for item in page:
-            corpus = corpus + references_list(file_path = item)
+            corpus = corpus + references_list(file_path = item, language = language)
         close_pages(page_to_close = i, mode='page')
     return corpus
 
@@ -330,6 +333,34 @@ def clean_text_list(vec):
             item = re.sub("([a-z])-\s+([a-z])", r'\1\2', item)
             clean.append(item)
     return clean
+
+def wrap_up_main(include_list, main_path, autor, titulo, sub_titulo):
+    
+    begining = '\\documentclass{novel}' + '\n' + \
+    '\\lang      {portuguese}' + '\n' + \
+    '\\title     {' + '{x}'.format(x = titulo) + '}\n' + \
+    '\\subtitle  {' + '{x}'.format(x = sub_titulo) + '}\n' + \
+    '\\authors   {' + '{x}'.format(x = autor) + '}\n' + \
+    '\\cover     {resources/novel_front.pdf}{resources/novel_back.pdf}' + '\n' + \
+    '\\license   {CC}{by-nc-sa}{3.0}' + \
+    '\\isbn      {--}' + \
+    '\\publisher {--}' + \
+    '\\edition   {1}{2024}' + \
+    "\\dedicate  { }{--}" + \
+    '%\\thank     {Uma tarefa execultada pelo grupo de T.I da Unidade Popular pelo Socialismo}' + '\n' + \
+    '%\\keywords  { }' + '\n'
+
+    include = ''
+    for item in include_list:
+        include = include + '\\input{' + f'{item}' + '}' + '\n'
+    ending = '\\end{document}'
+
+    main = begining + include + ending
+    print_to_file(main_path + '/main.tex', main)
+    print(main)
+    print('\n Escrito em:\t' + main_path + '/main.tex')
+    
+
 
 
 class page():
@@ -491,7 +522,7 @@ class page():
     def corpus_to_file(self, path):
         print_to_file(path_to_save = path,
                        string = self.Corpus)
-
+    
 
 class chapter():
     len_flag = 10
@@ -500,6 +531,7 @@ class chapter():
                  footnotes = None,
                  specials = None):
         self.Path = book_path
+        self.References = ''
         if epigraphs is not None:
             self.Epigraph_list = epigraphs
         else: 
@@ -558,9 +590,9 @@ class chapter():
             for item in self.Special_list:
                 print(item)
 
-    def chap_to_file(self, chap_pages_list, mode='both', 
-                      path_to_save_en = 'temp_files/sections/transposed/test.tex',
-                      path_to_save_pt = 'temp_files/sections/translated/test.tex'):
+    def chap_to_file(self, chap_pages_list, mode, 
+                      path_to_save_en,
+                      path_to_save_pt):
         Chap = page()
         for path in chap_pages_list:
             Chap.add_main_elements(path, raw=True)
@@ -589,28 +621,117 @@ class chapter():
             Chap.translate_text(language = 'pt', mode = 'Special')
             Chap.write_latex()
             Chap.corpus_to_file(path = path_to_save_pt)
+        del Chap
+        gc.collect()
         
-    def write_chapter(self, init_page, end_page, path_to_save_en, path_to_save_pt):
+    def write_chapter(self, init_page, end_page, path_to_save_en, path_to_save_pt, mode):
         path_list = open_page(doc_path = self.Path,
                               pages_to_open = [i for i in range(init_page, end_page + 1)])
         self.chap_to_file(chap_pages_list = path_list,
                           path_to_save_en=path_to_save_en,
-                          path_to_save_pt=path_to_save_pt)
+                          path_to_save_pt=path_to_save_pt,
+                          mode=mode)
         for idx in range(init_page, end_page+1):
             close_pages(idx, mode='page')
-
         
-footnote_list = ["This chapter originally"]
-epigraph_list = ['Whoever ﬁ gets monsters should']
-special_list = ['But it may be truly said, that men', 'I have been much concerned that',
-                'You start out in 1954 by saying', 'all these things you’re talking',
-                'I’m not saying that. But I’m saying']
+    def write_references(self, ref_init, ref_end, ref_lang):
+        def references_list(file_path, language):
+            '''
+                Função simples que toma uma pagina de referencias e retorna a enumeração das referencias
+            apresentadas. Recebe um argumento e retorna um string
 
-Chap = chapter(book_path='data/example_files/The Reactionary Mind_ Conservatism from Edmund Burke to Sarah Palin.pdf',
-               epigraphs=epigraph_list,
-               footnotes=footnote_list,
-               specials=special_list)
-Chap.write_chapter(init_page=55,
-                   end_page=75,
-                   path_to_save_en='temp_files/sections/transposed/test.tex',
-                   path_to_save_pt='temp_files/sections/translated/test.tex')
+            file_path, a string. O endereço para a pagina contendo referencias
+            '''
+            elements = partition_pdf(file_path)
+            references_list = ''
+            for item in elements:
+                item_type = type(item)
+                try:
+                    item_text = translate_snippet(item, language = language)
+                except:
+                    item_text = item.text
+                if item_type == unstructured.documents.elements.ListItem:
+                    to_find = re.compile(r"^[^.]*")
+                    init_chars = re.search(to_find, item_text).group(0)
+                    jump = len(init_chars)
+                    references_list = references_list + '\n\n\n\t' +\
+                                    '{\\color{blue}' + init_chars + '}' + \
+                                    item_text[jump:]
+                elif item_type == unstructured.documents.elements.Title:
+                    references_list = references_list + '\n\n\n' + '\\section{' +\
+                                        item_text + '}'
+            references_list = re.sub('\.\s+(\d{1,3})\.',
+                                    '.\n\n\n\t{color{blue}' + r'\1' + '}.',
+                                    references_list)
+            return references_list
+ 
+        corpus = ''
+        for i in range(ref_init, ref_end + 1):
+            page = open_page(self.Path, i)
+            print("Analisando referencias contidas na página:\t", page)
+            for item in page:
+                corpus = corpus + references_list(file_path = item, language = ref_lang)
+            print('Pronto!')
+            close_pages(page_to_close = i, mode='page')
+        self.References = corpus
+
+    def text_to_file(self, path, file):
+        print_to_file(path_to_save = path,
+                       string = file)
+
+    def write_book(self, inits_list, ends_list, reference_pages, autor,
+                   titulo, sub_titulo, writing_mode = 'both', slow = False):
+        include_list = []
+        for init, end, chap in zip(inits_list, ends_list, [i for i in range(len(inits_list))]):
+            main_path = 'temp_files/sections'
+            if chap <= 13:
+                continue
+            print("Escrevendo capitulo:\t" + str(chap))
+            print("Entre as páginas {x} e {y}\n".format(x=init, y=end))
+            path_to_save_en = main_path + '/transposed/cap_' + str(chap) + '.tex'
+            path_to_save_pt = main_path + '/translated/cap_' + str(chap) + '.tex'
+            if writing_mode == 'both':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'both')
+                include_list.append(path_to_save_pt)
+            elif writing_mode == 'pt':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'pt')
+                include_list.append(path_to_save_pt)
+            elif writing_mode == 'en':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'en')
+                include_list.append(path_to_save_en)
+            else: 
+                print("Opção para writing_mode desconhecida")
+                return None
+            print("Pronto! \n")
+            
+            if slow:
+                test = input('Aperte [enter] para continuar\n')
+        print(reference_pages)
+        print(reference_pages[0])
+        if writing_mode == 'both':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'en')
+            self.text_to_file(path = main_path + '/transposed/references.tex', file = self.References)
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'pt')
+            self.text_to_file(path = main_path + '/translated/references.tex', file = self.References)
+        elif writing_mode == 'en':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'en')
+            self.text_to_file(path = main_path + '/transposed/references.tex', file = self.References)
+            include_list.append(main_path + '/transposed/references.tex')
+        elif writing_mode == 'pt':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'pt')
+            self.text_to_file(path = main_path + '/translated/references.tex', file = self.References)
+            include_list.append(main_path + '/translated/references.tex')
+        print('Escrevendo o arquivo main.tex')
+        wrap_up_main(include_list, main_path, autor, titulo, sub_titulo)
+        print("Pronto!")
+        return main_path
+
+
