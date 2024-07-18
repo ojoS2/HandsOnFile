@@ -294,3 +294,15 @@ def naive_refence(string):
     new = re.sub(r'([\.”])\s*(\d+)\s*([,A-Z])', r'\1 {\\color{blue} \2 } {\\par} \3', new)
     return new
 
+def generate_simple_pattern(n, to_repeat, end_string = '', capture_all = False):
+    if capture_all:
+        pattern = '('
+        for i in range(n):
+            pattern = pattern + to_repeat
+        pattern = pattern + end_string + ')'
+    else:
+        pattern = ''
+        for i in range(n):
+            pattern = pattern + to_repeat
+        pattern = pattern + end_string
+    return pattern

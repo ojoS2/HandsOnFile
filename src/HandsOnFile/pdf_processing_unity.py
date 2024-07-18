@@ -4,20 +4,21 @@ from PyPDF2 import PdfWriter, PdfReader
 from unstructured.partition.pdf import partition_pdf
 from string import ascii_uppercase, ascii_lowercase
 from translate_unity import sentences_checking, translate_snippet, init_engines, text_checking
-from canivete import naive_refence, cleaning_with_regex, print_to_file
+from canivete import naive_refence, cleaning_with_regex, print_to_file, generate_simple_pattern
 import os
 import unstructured
 import re
 import gc
+import regex
 
 
-def get_file():
+def get_file(doc_path):
     #doc_path = input("Entre com o endereço do documento a ser tratado:\n")
     try:
         os.mkdir('data/temp')
     except:
         pass
-    doc_path = "data/example_files/The Reactionary Mind_ Conservatism from Edmund Burke to Sarah Palin.pdf"
+    #doc_path = "data/example_files/The Reactionary Mind_ Conservatism from Edmund Burke to Sarah Palin.pdf"
     path_to_save = input("\n\nEntre com o endereço onde o documento tratado será salvo ou aperte enter para salvar em um arquivo local. Todo conteúdo do caminho selecionado será deletado:\n")
     if not len(path_to_save) > 0:
         path_to_save = '.'
@@ -257,11 +258,12 @@ def references_list(file_path, language):
                               '{\\color{blue}' + init_chars + '}' + \
                               item_text[jump:]
         elif item_type == unstructured.documents.elements.Title:
-            references_list = references_list + '\n\n\n' + '\\section{' +\
+            references_list = references_list + '\n\n\n' + '\\section\*{' +\
                                 item_text + '}'
     references_list = re.sub('\.\s+(\d{1,3})\.',
                              '.\n\n\n\t{color{blue}' + r'\1' + '}.',
                              references_list)
+    references_list = re.sub('([%$_])', '\\' + r'\1', references_list)
     return references_list
 
 def get_refrences(path, beginning, ending, language):
@@ -312,8 +314,8 @@ def close_cap(beginning, ending):
 def join_text_list(vec):
     joined = []
     for idx in range(len(vec)-1):
-        item = vec[idx]
-        next = vec[idx + 1]
+        item = (vec[idx].rstrip()).lstrip()
+        next = (vec[idx+1].rstrip()).lstrip()
         if len(item) == 0:
             continue
         elif  not item[-1] == '.' and next[0] in ascii_lowercase:
@@ -348,7 +350,9 @@ def wrap_up_main(include_list, main_path, autor, titulo, sub_titulo):
     '\\edition   {1}{2024}' + \
     "\\dedicate  { }{--}" + \
     '%\\thank     {Uma tarefa execultada pelo grupo de T.I da Unidade Popular pelo Socialismo}' + '\n' + \
-    '%\\keywords  { }' + '\n'
+    '%\\keywords  { }' + '\n' + \
+    '\\begin{document}' + \
+    '\\toc'
 
     include = ''
     for item in include_list:
@@ -360,6 +364,50 @@ def wrap_up_main(include_list, main_path, autor, titulo, sub_titulo):
     print(main)
     print('\n Escrito em:\t' + main_path + '/main.tex')
     
+def input_equations(string):    
+    pat_n1 = generate_simple_pattern(n = 1, to_repeat = '\s[a-zA-Z]\'?[0-9]\s[\+><-]', end_string = '\s[a-zA-Z][0-9][\?!,:\s.]', capture_all= False)
+    pat_n2 = generate_simple_pattern(n = 2, to_repeat = '\s[a-zA-Z]\'?[0-9]\s[\+><-]', end_string = '\s[a-zA-Z][0-9][\?!,:\s.]', capture_all= False)
+    pat_n3 = generate_simple_pattern(n = 3, to_repeat = '\s[a-zA-Z]\'?[0-9]\s[\+><-]', end_string = '\s[a-zA-Z][0-9][\?!,:\s.]', capture_all= False)
+    pat_n4 = generate_simple_pattern(n = 4, to_repeat = '\s[a-zA-Z]\'?[0-9]\s[\+><-]', end_string = '\s[a-zA-Z][0-9][\?!,:\s.]', capture_all= False)
+    string = re.sub('–', '-', string)
+    lv4_eq = re.findall(pat_n4, string)
+    lv3_eq = re.findall(pat_n3, string)
+    lv2_eq = re.findall(pat_n2, string)
+    lv1_eq = re.findall(pat_n1, string)
+    lv4_eq = [re.sub(r'([a-zA-Z])([0-9])', r'\1_{' + r'\2}',s) for s in lv4_eq]
+    lv3_eq = [re.sub(r'([a-zA-Z])([0-9])', r'\1_{' + r'\2}',s) for s in lv3_eq]
+    lv2_eq = [re.sub(r'([a-zA-Z])([0-9])', r'\1_{' + r'\2}',s) for s in lv2_eq]
+    lv1_eq = [re.sub(r'([a-zA-Z])([0-9])', r'\1_{' + r'\2}',s) for s in lv1_eq]
+    string = re.sub(pat_n4, ' eeeeee4 ', string) 
+    string = re.sub(pat_n3, ' eeeeee3 ', string) 
+    string = re.sub(pat_n2, ' eeeeee2 ', string) 
+    string = re.sub(pat_n1, ' eeeeee1 ', string)
+    idx_4 = 0
+    idx_3 = 0
+    idx_2 = 0
+    idx_1 = 0
+    temp = string.split(' ')
+    new = []
+    for s in temp:
+        if  s == 'eeeeee4':
+            new.append(" $$" + lv4_eq[idx_4] + "$$ ")
+            idx_4 = idx_4 + 1
+        elif  s == 'eeeeee3':
+            new.append(" $$" + lv3_eq[idx_3] + "$$ ")
+            idx_3 = idx_3 + 1
+        elif  s == 'eeeeee2':
+            new.append(" $$" + lv2_eq[idx_2] + "$$ ")
+            idx_2 = idx_2 + 1
+        elif  s == 'eeeeee1':
+            new.append(" $$" + lv1_eq[idx_1] + "$$ ")
+            idx_1 = idx_1 + 1
+        else :
+            new.append(s)
+    done = ' '.join(new)
+    return done
+
+    
+
 
 
 
@@ -372,10 +420,13 @@ class page():
         self.Epigraph = []
         self.Epigraph_citation = []
         self.Corpus = []
+        self.equations = []
+        self.figures = []
 
     def add_main_elements(self, path, raw = False):
         elements = partition_pdf(path)
         for el, typ in zip([el.text for el in elements], [type(el) for el in elements]):
+            el.replace('–', '-')
             if typ == unstructured.documents.elements.Title:
                 if not el.isnumeric() and len(el) > 4:
                     temp = (el.lstrip()).rstrip()
@@ -502,6 +553,15 @@ class page():
                     temp = '\\textbf{\\textit{' + self.Title[idx_title] + '} }'
                     corpus.append(temp)
                     idx_title = idx_title + 1
+                elif len(re.findall('[A-Z]+[\s+<>\-\+\=][A-Z]+', self.Title[idx_title])) > 0:
+                    temp = '\\[' + self.Title[idx_title] + '\\]'
+                    corpus.append(temp)
+                elif self.Title[idx_title][:5] == "Figur":
+                    temp = '\\begin\{figure\}[h]\n\\centering\n\\includegraphics[width=0.25\\textwidth]{ }\n\\caption{'
+                    temp = temp + self.Title[idx_title] + '}\n\\label\{\}\n\\end\{figure\}'
+                else :
+                    temp = '\section{' + self.Title[idx_title] + '}'
+                    corpus.append(temp)
             elif item == 'FFFFFF':
                 temp = '\\footnote{' + self.Footnote[idx_footnote] + '}' 
                 corpus.append(temp)
@@ -515,7 +575,8 @@ class page():
                 corpus.append('\\textit\\textbf{ {' + temp + '} }')
                 idx_special = idx_special + 1
             else:
-                temp = naive_refence(item) 
+                temp = naive_refence(item)
+                temp = input_equations(temp)
                 corpus.append(temp)
         self.Corpus = '\n \par \n'.join(corpus)
 
@@ -525,7 +586,7 @@ class page():
     
 
 class chapter():
-    len_flag = 10
+    len_flag = 6
     def __init__(self, book_path, 
                  epigraphs = None,
                  footnotes = None,
@@ -599,7 +660,10 @@ class chapter():
         Chap.add_footnotes(self.Footnote_list, chapter.len_flag)
         Chap.add_epigraph(self.Epigraph_list, chapter.len_flag)
         Chap.add_special(self.Special_list, chapter.len_flag)
+        Chap.Text = join_text_list(Chap.Text)
+        Chap.Text = clean_text_list(Chap.Text)
         Chap.correct_text(language = 'en')
+
         if mode == 'en':
             Chap.write_latex()
             Chap.corpus_to_file(path = path_to_save_en)
@@ -680,16 +744,24 @@ class chapter():
                        string = file)
 
     def write_book(self, inits_list, ends_list, reference_pages, autor,
-                   titulo, sub_titulo, writing_mode = 'both', slow = False):
+                   titulo, sub_titulo, writing_mode = 'both', slow = False,
+                   from_the_top = True):
+        if from_the_top:
+            doc_path, main_path, chapter_translated_path, chapter_transposed_path = get_file(self.Path)
+        else:
+            main_path = 'temp_files/sections'
+            chapter_translated_path = 'temp_files/sections/translated'
+            chapter_transposed_path = 'temp_files/sections/transposed'
+            get_from = int(input('A partir de qual capitulo deseja continuar?\n'))
         include_list = []
         for init, end, chap in zip(inits_list, ends_list, [i for i in range(len(inits_list))]):
-            main_path = 'temp_files/sections'
-            if chap <= 13:
-                continue
+            if not from_the_top:
+                if chap < get_from:
+                    continue
             print("Escrevendo capitulo:\t" + str(chap))
             print("Entre as páginas {x} e {y}\n".format(x=init, y=end))
-            path_to_save_en = main_path + '/transposed/cap_' + str(chap) + '.tex'
-            path_to_save_pt = main_path + '/translated/cap_' + str(chap) + '.tex'
+            path_to_save_en = chapter_transposed_path + '/cap_' + str(chap) + '.tex'
+            path_to_save_pt = chapter_translated_path + '/cap_' + str(chap) + '.tex'
             if writing_mode == 'both':
                 self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'both')
                 include_list.append(path_to_save_pt)
@@ -706,31 +778,29 @@ class chapter():
             
             if slow:
                 test = input('Aperte [enter] para continuar\n')
-        print(reference_pages)
-        print(reference_pages[0])
         if writing_mode == 'both':
             self.write_references(ref_init = reference_pages[0],
                                     ref_end = reference_pages[1],
                                     ref_lang = 'en')
-            self.text_to_file(path = main_path + '/transposed/references.tex', file = self.References)
+            self.text_to_file(path = chapter_transposed_path + '/references.tex', file = self.References)
             self.write_references(ref_init = reference_pages[0],
                                     ref_end = reference_pages[1],
                                     ref_lang = 'pt')
-            self.text_to_file(path = main_path + '/translated/references.tex', file = self.References)
+            self.text_to_file(path = chapter_translated_path + '/references.tex', file = self.References)
         elif writing_mode == 'en':
             self.write_references(ref_init = reference_pages[0],
                                     ref_end = reference_pages[1],
                                     ref_lang = 'en')
-            self.text_to_file(path = main_path + '/transposed/references.tex', file = self.References)
-            include_list.append(main_path + '/transposed/references.tex')
+            self.text_to_file(path = chapter_transposed_path + '/references.tex', file = self.References)
+            include_list.append(chapter_transposed_path + '/references.tex')
         elif writing_mode == 'pt':
             self.write_references(ref_init = reference_pages[0],
                                     ref_end = reference_pages[1],
                                     ref_lang = 'pt')
-            self.text_to_file(path = main_path + '/translated/references.tex', file = self.References)
-            include_list.append(main_path + '/translated/references.tex')
+            self.text_to_file(path = chapter_translated_path + '/references.tex', file = self.References)
+            include_list.append(chapter_translated_path + '/references.tex')
         print('Escrevendo o arquivo main.tex')
-        wrap_up_main(include_list, main_path, autor, titulo, sub_titulo)
+        wrap_up_main(include_list, 'temp_files', autor, titulo, sub_titulo)
         print("Pronto!")
         return main_path
 

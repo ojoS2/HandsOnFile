@@ -18,6 +18,7 @@ import canivete
 import re
 import gc
 
+
 def test_print_out_book_The_Reactionary_Mind():
     footnote_list = ["This chapter originally"]
     epigraph_list = ['A political party may ﬁnd that',
@@ -119,58 +120,37 @@ def test_print_out_book_The_Reactionary_Mind():
     gc.collect()
     print("Pronto!")
     print("Os escritos podem ser encontrados na pasta temp_files")
+    print('Os arquivos escritos foram feito para compilação online no site https://www.overleaf.com/ de forma que para produzir o livro, entre neste site abrindo uma conta gratuita e carregue a partir de lá, a pasta temp_files. Com o editor aberto no arquivo main.tex compile e avalie o trabalho prestando atenção aos erros que eventualmente aparecem')
 
+def test_print_out_book_Marx_Capital():
+    footnote_list = []
+    epigraph_list = []
+    begin_chap_pages =  [9, 10, 17, 29, 44, 62, 70, 81, 94,  105, 111, 126, 135, 142, 153, 165, 178]
+    ending_chap_pages = [9, 15, 28, 43, 61, 69, 80, 93, 104, 110, 125, 134, 141, 152, 164, 177, 191]
+    special_list = ['Men make their own history,']
+    autor = "Ben Fine e Alfredo Saad-Filho"
+    titulo = "O 'Capital' de Marx (sexta edição)"
+    sub_titulo = "Uma introdução simples ao livro O Capital"
+    Chap = chapter(book_path='data/example_files/ben-fine-marxs-capital-6th-edition.pdf',
+                   epigraphs=epigraph_list,
+                   footnotes=footnote_list,
+                   specials=special_list)
+    
+    book_path = Chap.write_book(inits_list = begin_chap_pages,
+                    ends_list = ending_chap_pages,
+                    reference_pages = [192, 201], 
+                    autor = autor,
+                    titulo = titulo, 
+                    sub_titulo = sub_titulo,
+                    writing_mode = 'pt',
+                    slow = False,
+                    from_the_top = False)
+    print('Deletando os objetos e liberando memória')
 
-test_print_out_book_The_Reactionary_Mind()
-'''
-path = pdf_u.open_page(doc_path = 'data/example_files/The Reactionary Mind_ Conservatism from Edmund Burke to Sarah Palin.pdf',
-                            pages_to_open = [i for i in range(55, 75)])
+    del Chap
+    gc.collect()
+    print("Pronto!")
+    print("Os escritos podem ser encontrados na pasta temp_files")
+    print('Os arquivos escritos foram feito para compilação online no site https://www.overleaf.com/ de forma que para produzir o livro, entre neste site abrindo uma conta gratuita e carregue a partir de lá, a pasta temp_files. Com o editor aberto no arquivo main.tex compile e avalie o trabalho prestando atenção aos erros que eventualmente aparecem')
 
-
-footnote_list = ["This chapter originally"]
-epigraph_list = ['Whoever ﬁ gets monsters should']
-special_list = ['But it may be truly said, that men', 'I have been much concerned that',
-                'You start out in 1954 by saying', 'all these things you’re talking',
-                'I’m not saying that. But I’m saying']
-len_flag = 10
-footnote_list = [footnote[:len_flag] for footnote in footnote_list]
-epigraph_list = [epigraph[:len_flag] for epigraph in epigraph_list]
-special_list = [special[:len_flag] for special in special_list]
-#filter_len = 15
-#footnote_list = [item[:15] for item in footnote_list]
-Chap = pdf_u.page()
-Chap.add_main_elements(path[0], raw=True)
-for idx in range(1, len(path)):
-    Chap.add_main_elements(path[idx], raw=True)
-Chap.add_footnotes(footnote_list, len_flag)
-Chap.add_epigraph(epigraph_list, len_flag)
-Chap.add_special(special_list, len_flag)
-Chap.correct_text(language = 'en')
-Chap.write_latex()
-Chap.corpus_to_file(path = 'temp_files/sections/transposed/test.tex')
-Chap.translate_text(language = 'pt', mode = 'Title')
-Chap.translate_text(language = 'pt', mode = 'Text')
-Chap.translate_text(language = 'pt', mode = 'Footnote')
-Chap.translate_text(language = 'pt', mode = 'Epigraph')
-Chap.translate_text(language = 'pt', mode = 'Special')
-Chap.write_latex()
-Chap.corpus_to_file(path = 'temp_files/sections/translated/test.tex')
-
-
-
-#Chap.correct_text(language = 'pt')
-#Chap.write_to_file(path='./teste.tex')
-
-'''
-
-
-'''
-for item in Chap.Text:
-    print('\n\n')
-    print(item)
-print(Chap.Title)
-print(Chap.Footnote)
-print(Chap.Epigraph)
-print(Chap.Special)
-'''
-#print(corpus)
+test_print_out_book_Marx_Capital()
