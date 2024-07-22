@@ -153,4 +153,31 @@ def test_print_out_book_Marx_Capital():
     print("Os escritos podem ser encontrados na pasta temp_files")
     print('Os arquivos escritos foram feito para compilação online no site https://www.overleaf.com/ de forma que para produzir o livro, entre neste site abrindo uma conta gratuita e carregue a partir de lá, a pasta temp_files. Com o editor aberto no arquivo main.tex compile e avalie o trabalho prestando atenção aos erros que eventualmente aparecem')
 
-test_print_out_book_Marx_Capital()
+#test_print_out_book_Marx_Capital()
+
+def test_print_out_an_article():
+    footnote_list = ['International Journal of']
+    epigraph_list = []
+    begin_chap_pages =  [0]
+    ending_chap_pages = [17]
+    special_list = ['This article analyzes', 'Should capitalism be the goal', 'resulting responsability']
+    autor = "Vicente Navarro"
+    titulo = "O SOCIALISMO FALHOU? UMA ANÁLISE DE INDICADORES DE SAÚDE SOB O SOCIALISMO"
+    sub_titulo = ""
+    Chap = chapter(book_path='/home/ricardo/Downloads/Has_Socialism_Failed-Analysis_of_Health_Indicators-Navarro_Vincente-1992.pdf',
+                   epigraphs=epigraph_list,
+                   footnotes=footnote_list,
+                   specials=special_list)
+    
+    book_path = Chap.write_article(inits_list = begin_chap_pages,
+                    ends_list = ending_chap_pages,
+                    reference_pages = [17, 18], 
+                    autor = autor,
+                    titulo = titulo, 
+                    sub_titulo = sub_titulo,
+                    writing_mode = 'pt',
+                    slow = False,
+                    from_the_top = True)
+
+
+test_print_out_an_article()

@@ -316,6 +316,8 @@ def join_text_list(vec):
     for idx in range(len(vec)-1):
         item = (vec[idx].rstrip()).lstrip()
         next = (vec[idx+1].rstrip()).lstrip()
+        if len(next) == 0:
+            continue
         if len(item) == 0:
             continue
         elif  not item[-1] == '.' and next[0] in ascii_lowercase:
@@ -414,6 +416,7 @@ def input_equations(string):
 class page():
     def __init__(self):
         self.Title = []
+        self.Sections = []
         self.Text = []
         self.Footnote = []
         self.Special = []
@@ -428,12 +431,13 @@ class page():
         for el, typ in zip([el.text for el in elements], [type(el) for el in elements]):
             el.replace('–', '-')
             if typ == unstructured.documents.elements.Title:
-                if not el.isnumeric() and len(el) > 4:
+                if not el.isnumeric() and len(el) > 5:
                     temp = (el.lstrip()).rstrip()
                     if not temp in self.Title:
                         self.Text.append("TTTTTT")
                         self.Title.append(temp)
-            elif typ == unstructured.documents.elements.NarrativeText:
+                        
+            elif typ == unstructured.documents.elements.NarrativeText or unstructured.documents.elements.Text:
                     self.Text.append((el.lstrip()).rstrip())
         if not raw:        
             self.Text = join_text_list(self.Text)
@@ -556,12 +560,15 @@ class page():
                 elif len(re.findall('[A-Z]+[\s+<>\-\+\=][A-Z]+', self.Title[idx_title])) > 0:
                     temp = '\\[' + self.Title[idx_title] + '\\]'
                     corpus.append(temp)
+                    idx_title = idx_title + 1
                 elif self.Title[idx_title][:5] == "Figur":
                     temp = '\\begin\{figure\}[h]\n\\centering\n\\includegraphics[width=0.25\\textwidth]{ }\n\\caption{'
                     temp = temp + self.Title[idx_title] + '}\n\\label\{\}\n\\end\{figure\}'
+                    idx_title = idx_title + 1
                 else :
                     temp = '\section{' + self.Title[idx_title] + '}'
                     corpus.append(temp)
+                    idx_title = idx_title + 1
             elif item == 'FFFFFF':
                 temp = '\\footnote{' + self.Footnote[idx_footnote] + '}' 
                 corpus.append(temp)
@@ -583,10 +590,9 @@ class page():
     def corpus_to_file(self, path):
         print_to_file(path_to_save = path,
                        string = self.Corpus)
-    
 
 class chapter():
-    len_flag = 6
+    len_flag = 8
     def __init__(self, book_path, 
                  epigraphs = None,
                  footnotes = None,
@@ -804,4 +810,186 @@ class chapter():
         print("Pronto!")
         return main_path
 
+    def write_article(self, inits_list, ends_list, reference_pages, autor,
+                   titulo, sub_titulo, writing_mode = 'both', slow = False,
+                   from_the_top = True):
+        if from_the_top:
+            doc_path, main_path, chapter_translated_path, chapter_transposed_path = get_file(self.Path)
+        else:
+            main_path = 'temp_files/sections'
+            chapter_translated_path = 'temp_files/sections/translated'
+            chapter_transposed_path = 'temp_files/sections/transposed'
+            get_from = int(input('A partir de qual capitulo deseja continuar?\n'))
+        include_list = []
+        for init, end, chap in zip(inits_list, ends_list, [i for i in range(len(inits_list))]):
+            if not from_the_top:
+                if chap < get_from:
+                    continue
+            print("Escrevendo capitulo:\t" + str(chap))
+            print("Entre as páginas {x} e {y}\n".format(x=init, y=end))
+            path_to_save_en = chapter_transposed_path + '/cap_' + str(chap) + '.tex'
+            path_to_save_pt = chapter_translated_path + '/cap_' + str(chap) + '.tex'
+            if writing_mode == 'both':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'both')
+                include_list.append(path_to_save_pt)
+            elif writing_mode == 'pt':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'pt')
+                include_list.append(path_to_save_pt)
+            elif writing_mode == 'en':
+                self.write_chapter(init, end, path_to_save_en, path_to_save_pt, mode = 'en')
+                include_list.append(path_to_save_en)
+            else: 
+                print("Opção para writing_mode desconhecida")
+                return None
+            print("Pronto! \n")
+            
+            if slow:
+                test = input('Aperte [enter] para continuar\n')
+        if writing_mode == 'both':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'en')
+            self.text_to_file(path = chapter_transposed_path + '/references.tex', file = self.References)
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'pt')
+            self.text_to_file(path = chapter_translated_path + '/references.tex', file = self.References)
+        elif writing_mode == 'en':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'en')
+            self.text_to_file(path = chapter_transposed_path + '/references.tex', file = self.References)
+            include_list.append(chapter_transposed_path + '/references.tex')
+        elif writing_mode == 'pt':
+            self.write_references(ref_init = reference_pages[0],
+                                    ref_end = reference_pages[1],
+                                    ref_lang = 'pt')
+            self.text_to_file(path = chapter_translated_path + '/references.tex', file = self.References)
+            include_list.append(chapter_translated_path + '/references.tex')
+        print('Escrevendo o arquivo main.tex')
+        wrap_up_main(include_list, 'temp_files', autor, titulo, sub_titulo)
+        print("Pronto!")
 
+class extrato():
+    def __init__(self):
+        pass
+        
+class artigo():
+    def __init__(self):
+        self.Title = []
+        self.Sections = []
+        self.Text = []
+        self.Footnote = []
+        self.Special = []
+        self.Abstract = []
+        self.Author = []
+        self.Corpus = ''
+        self.equations = []
+        self.figures = []
+
+    def add_main_elements(self, path, title_flag, abstract_flag, sections_flag_list, raw = False):
+        section_len = len(sections_flag_list[0])
+        elements = partition_pdf(path)
+        for el, typ in zip([el.text for el in elements], [type(el) for el in elements]):
+            if el[:len(title_flag)] in title_flag:
+                self.Title = el
+                continue
+            elif el[:len(abstract_flag)] in abstract_flag:
+                self.Abstract = el
+                continue
+            el.replace('–', '-')
+            if typ == unstructured.documents.elements.Title:
+                if el[:section_len] in sections_flag_list:
+                    temp = (el.lstrip()).rstrip()
+                    self.Text.append("SSSSSS")
+                    self.Sections.append(temp)
+            elif typ == unstructured.documents.elements.NarrativeText or unstructured.documents.elements.Text:
+                    self.Text.append((el.lstrip()).rstrip())
+        if not raw:        
+            self.Text = join_text_list(self.Text)
+            self.Text = clean_text_list(self.Text)
+
+    def write_article(self):
+
+        corpus = '\\documentclass[twocolumn,amsmath,amssymb,aps,pre,floatfix]{revtex4-2}\n'
+        corpus = corpus + '\\usepackage{url}\n'
+        corpus = corpus + '\\usepackage[colorlinks=true, allcolors=blue]{hyperref}\n'
+        corpus = corpus + '\\usepackage{float}\n'
+        corpus = corpus + '\\usepackage[utf8]{inputenc}\n'
+        corpus = corpus + '\\usepackage[T1]{fontenc}\n'
+        corpus = corpus + '\\usepackage{lineno}\n'
+        corpus = corpus + '\\usepackage{amsthm}\n'
+        corpus = corpus + '\\usepackage{}\n'
+        corpus = corpus + '\\newtheorem{theorem}{Auxiliary result}\n'
+        corpus = corpus + '\\newtheorem{corollary}{Main result}\n'
+        corpus = corpus + '\\newtheorem{definition}{Definition}\n'
+        corpus = corpus + '\\newtheorem*{gen}{General properties}\n'
+        corpus = corpus + '\\newtheorem{prop}{ Appendix result}\n'
+        corpus = corpus + '\\newtheorem{secondary}{Appendix\' secondary result}\n'
+        corpus = corpus + '\\usepackage{nicematrix}\n'
+        corpus = corpus + '\\usepackage{bm}\n'
+        corpus = corpus + '\\usepackage{dsfont}\n'
+        corpus = corpus + '\\usepackage{amsfonts}\n'
+        corpus = corpus + '\\usepackage{indentfirst}\n'
+        corpus = corpus + '\\usepackage{graphicx}\n'
+        corpus = corpus + '\\usepackage{dcolumn}\n'
+        corpus = corpus + '\\usepackage{bm}\n'
+        corpus = corpus + '\\usepackage{color}\n'
+        corpus = corpus + '\\usepackage{wasysym}\n'
+        corpus = corpus + '\\begin{document}\n'
+
+        engine = init_engines('pt')
+
+        corpus = corpus + '\\title{' +\
+            text_checking(translate_snippet(self.Title, language = 'pt'), engine, 'pt') +\
+                  '}\n'
+        corpus = corpus + '\\author{' + self.Author + '}\n'
+        corpus = corpus + '\\begin{abstract}' +\
+              text_checking(translate_snippet(self.Abstract, language = 'pt'), engine, 'pt') +\
+                   '\\end{abstract}\n'
+        sect_idx = 0
+        text_vec = []
+        for item in self.Text:
+            if item == 'SSSSSS':
+                text_vec.append('\n\\section{' +\
+                    text_checking(translate_snippet(self.Sections[sect_idx], language = 'pt'), engine, 'pt') +\
+                   '}\n')
+                sect_idx = sect_idx + 1
+            else:
+                try:
+                    temp = text_checking(translate_snippet(item, language = 'pt'), engine, 'pt')
+                except:
+                    temp = translate_snippet(item, language = 'pt')
+                if temp is not None:
+                    text_vec.append(temp)
+                
+        corpus = corpus + '\n\\par\n'.join(text_vec)
+        corpus = corpus + '\n\\end{document}\n'
+        self.Corpus = corpus
+
+    def corpus_to_file(self, path):
+        print_to_file(path_to_save = path,
+                       string = self.Corpus)
+
+
+
+
+path = '/home/ricardo/Downloads/Has_Socialism_Failed-Analysis_of_Health_Indicators-Navarro_Vincente-1992.pdf'
+#open_page(doc_path = path, pages_to_open=0)
+#open_page(doc_path = path, pages_to_open=1)
+
+#path = 'data/temp/document-page0.pdf'
+#page_eval(path)
+
+test = artigo()
+#test.Title = 'HAS SOCIALISM FAILED? AN ANALYSIS OF HEALTH INDICATORS UNDER SOCIALISM'
+#test.Abstract = 'This article analyzes the widely held assumption in academia and the mainstream press that capitalism has proven superior to socialism in responding to human needs.'
+
+title_flag = 'HAS SOCIALISM'
+abstract_flag = 'This article analyzes'
+sections_flag_list = ['A CONTINENT', 'SOCIALISM IN', 'HOW TO EVALUATE', 'CONCLUSIONS', 'REFERENCES']
+sections_flag_list = [item[:10] for item in sections_flag_list]
+test.Author = 'Vicente Navarro'
+test.add_main_elements(path = path, title_flag = title_flag, abstract_flag = abstract_flag, sections_flag_list = sections_flag_list)
+test.write_article()
+test.corpus_to_file('data/temp/teste.tex')

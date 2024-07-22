@@ -283,6 +283,8 @@ def get_flags_back(data, saved_lists, flags_list):
     return data
 
 def naive_refence(string):
+    if string is None or len(string) == 0:
+        return ''
     new = re.sub(r'([\s\.])(\d{1})([\s\.\)])', r'\1{\\color{blue}\2}\3', string)
     new = re.sub(r'([\s\.”\t])\s*(\d{1})$', r'\1{\\color{blue}\2}', new)
     new = re.sub(r'([\s\.])(\d{2})([\s\.\)])', r'\1{\\color{blue}\2}\3', new)
