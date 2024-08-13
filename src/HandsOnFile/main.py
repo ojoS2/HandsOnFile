@@ -153,8 +153,6 @@ def test_print_out_book_Marx_Capital():
     print("Os escritos podem ser encontrados na pasta temp_files")
     print('Os arquivos escritos foram feito para compilação online no site https://www.overleaf.com/ de forma que para produzir o livro, entre neste site abrindo uma conta gratuita e carregue a partir de lá, a pasta temp_files. Com o editor aberto no arquivo main.tex compile e avalie o trabalho prestando atenção aos erros que eventualmente aparecem')
 
-#test_print_out_book_Marx_Capital()
-
 def test_print_out_an_article():
     footnote_list = ['International Journal of']
     epigraph_list = []
@@ -164,7 +162,7 @@ def test_print_out_an_article():
     autor = "Vicente Navarro"
     titulo = "O SOCIALISMO FALHOU? UMA ANÁLISE DE INDICADORES DE SAÚDE SOB O SOCIALISMO"
     sub_titulo = ""
-    Chap = chapter(book_path='/home/ricardo/Downloads/Has_Socialism_Failed-Analysis_of_Health_Indicators-Navarro_Vincente-1992.pdf',
+    Chap = chapter(book_path='data/example_files/Has_Socialism_Failed-Analysis_of_Health_Indicators-Navarro_Vincente-1992.pdf',
                    epigraphs=epigraph_list,
                    footnotes=footnote_list,
                    specials=special_list)
@@ -179,5 +177,64 @@ def test_print_out_an_article():
                     slow = False,
                     from_the_top = True)
 
+def test_print_out_book_better_sex_under_socialism():
+    footnote_list = []
+    epigraph_list = []
+    begin_chap_pages = [13, 19, 30, 54, 77, 106, 135, 156, 185, 208, 216, 219, 252, 256]
+    ending_chap_pages = [18, 29, 53, 75, 105, 133, 155, 183, 207, 215, 217, 237, 254, 256]
+    special_list = ['In the middle of', 
+                    '“What’s wrong with you?”',
+                    '“I had a terrible',
+                    '“How is that a',
+                    'The woman shakes',
+                    'When I got married,',
+                    'Madame Kollontai’s',
+                    'A broad range of valued',
+                    'has left remaining',
+                    'It has drowned the',
+                    'The woman of the future',
+                    'vestige of domination or exploitation,',
+                    'The erasure of socialist ideas']
+    captions_list = ['Elena Lagadinova',
+                     'Valentina Tereshkova',
+                     'Clara Zetkin (1857-1933):',
+                     'Lily Braun (1865-1916):',
+                     'Flora Tristan (1803-1844):',
+                     'Alexandra Kollontai (1872-1952):',
+                     'Inessa Armand (1874-1920):',
+                     'Rosa Luxemburg (1871-1919):',
+                     'August Bebel (1840-1913):',
+                     'Nadezhda Krupskaya (1869-1939):',
+                     'Ana Pauker (1893-1960):',
+                     'When the Berlin Wall']
+    special_list = [item[:chapter.len_flag] for item in special_list]
+    captions_list = [item[:chapter.len_flag] for item in captions_list]
+    autor = "Kristen R. Ghodsee"
+    titulo = "Por que mulheres tem melhor sexo no socialismo?"
+    sub_titulo = ""
 
-test_print_out_an_article()
+    Chap = chapter(book_path='data/example_files/Why women have better sex under socialism.pdf',
+                epigraphs=epigraph_list,
+                footnotes=footnote_list,
+                specials=special_list,
+                captions=captions_list)
+    book_path = Chap.write_book(inits_list = begin_chap_pages,  
+                    ends_list = ending_chap_pages,
+                    reference_pages = [None, None], #[263, 293], 
+                    autor = autor,
+                    titulo = titulo, 
+                    sub_titulo = sub_titulo,
+                    writing_mode = 'pt',
+                    slow = True,
+                    from_the_top = False)
+    print('Deletando os objetos e liberando memória')
+    del Chap
+    gc.collect()
+    print("Pronto!")
+    print("Os escritos podem ser encontrados na pasta temp_files")
+    print('Os arquivos escritos foram feito para compilação online no site https://www.overleaf.com/ de forma que para produzir o livro, entre neste site abrindo uma conta gratuita e carregue a partir de lá, a pasta temp_files. Com o editor aberto no arquivo main.tex compile e avalie o trabalho prestando atenção aos erros que eventualmente aparecem')
+
+#test_print_out_book_The_Reactionary_Mind()
+#test_print_out_book_Marx_Capital()
+#test_print_out_an_article()
+test_print_out_book_better_sex_under_socialism()

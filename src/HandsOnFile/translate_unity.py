@@ -29,7 +29,10 @@ def sentences_checking(engine, text):
     return correct
 
 def select_translation_rules(engine, string, mode = 'en'):
-    matches = engine.check(string)
+    try:
+        matches = engine.check(string)
+    except:
+        return string
     if mode == 'en':
         return [rule for rule in matches if not filter_matches_english(rule)]
     elif mode == 'pt':

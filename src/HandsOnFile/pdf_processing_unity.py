@@ -424,7 +424,7 @@ class page():
         self.Epigraph_citation = []
         self.Corpus = []
         self.equations = []
-        self.figures = []
+        self.Figure = []
 
     def add_main_elements(self, path, raw = False):
         elements = partition_pdf(path)
@@ -435,10 +435,10 @@ class page():
                     temp = (el.lstrip()).rstrip()
                     if not temp in self.Title:
                         self.Text.append("TTTTTT")
-                        self.Title.append(temp)
-                        
+                        self.Title.append(temp)             
             elif typ == unstructured.documents.elements.NarrativeText or unstructured.documents.elements.Text:
-                    self.Text.append((el.lstrip()).rstrip())
+                    temp = (el.lstrip()).rstrip()
+                    self.Text.append((temp.lstrip()).rstrip())
         if not raw:        
             self.Text = join_text_list(self.Text)
             self.Text = clean_text_list(self.Text)
@@ -473,27 +473,43 @@ class page():
                 text.append(el)
         self.Text = text
 
+    def add_captions(self, caption_list, len_flag):
+        text = []
+        for el in self.Text:
+            if el[:len_flag] in caption_list:
+                self.Figure.append(el)
+                text.append("CCCCCC")
+            else:
+                text.append(el)
+        self.Text = text
+
     def correct_text(self, language = 'en'):
+        def correct(sent, engine, language):
+            try : 
+                temp = text_checking(sent, engine, language)
+            except:
+                temp = ''
+            return temp
         engine = init_engines(language)
         corrected = []
         for sentence in self.Text:
-            corrected.append(text_checking(sentence, engine, language))
+            corrected.append(correct(sentence, engine, language))
         self.Text = clean_text_list(corrected)
         corrected = []
         for sentence in self.Title:
-            corrected.append(text_checking(sentence, engine, language))
+            corrected.append(correct(sentence, engine, language))
         self.Title = clean_text_list(corrected)
         corrected = []
         for sentence in self.Footnote:
-            corrected.append(text_checking(sentence, engine, language))
+            corrected.append(correct(sentence, engine, language))
         self.Footnote = clean_text_list(corrected)
         corrected = []
         for sentence in self.Epigraph:
-            corrected.append(text_checking(sentence, engine, language))
+            corrected.append(correct(sentence, engine, language))
         self.Epigraph = clean_text_list(corrected)
         corrected = []
         for sentence in self.Special:
-            corrected.append(text_checking(sentence, engine, language))
+            corrected.append(correct(sentence, engine, language))
         self.Special = clean_text_list(corrected)
 
     def translate_text(self, language = 'pt', mode = 'Text'):
@@ -504,10 +520,11 @@ class page():
                 if sentence == 'TTTTTT' or \
                    sentence == 'EEEEEE' or \
                    sentence == 'SSSSSS' or \
-                    sentence == 'FFFFFF':
-                    translated.append(sentence)
+                   sentence == 'FFFFFF' or \
+                   sentence == 'CCCCCC' :
+                   translated.append(sentence)
                 else:
-                    translated.append(translate_snippet(sentence, language = language))
+                   translated.append(translate_snippet(sentence, language = language))
             self.Text = translated
         elif mode == 'title':
             translated = []
@@ -529,6 +546,11 @@ class page():
             for sentence in self.Special:
                 translated.append(translate_snippet(sentence, language = language))
             self.Special = translated
+        elif mode == 'captions':
+            translated = []
+            for sentence in self.Figure:
+                translated.append(translate_snippet(sentence, language = language))
+            self.Figure = translated
         else:
             print('Opção desconhecia para tradução, as opções atuais são [text, title, footnote, epigraph, special], digite uma das opções e tente novamente')
             return None
@@ -545,6 +567,7 @@ class page():
         idx_footnote = 0
         idx_epigraph = 0
         idx_special = 0
+        idx_caption = 0
         for item in self.Text:
             if item == 'TTTTTT':
                 if chap_title_flag:
@@ -581,6 +604,16 @@ class page():
                 temp = naive_refence(self.Special[idx_special]) 
                 corpus.append('\\textit\\textbf{ {' + temp + '} }')
                 idx_special = idx_special + 1
+            elif item == 'CCCCCC':
+                temp = naive_refence(self.Figure[idx_caption]) 
+                fig = '\\begin{figure}'
+                fig = fig + '\n\t\\centering'
+                fig = fig + '\n\t\\includegraphics[width=1.\\textwidth]{temp\_files/images/UP\_logo.png }'
+                fig = fig + '\n\t\\caption{' + temp + '}'
+                fig = fig + '\n\t\\label{ }'
+                fig = fig + '\n\\end{figure}'
+                corpus.append(fig)
+                idx_caption = idx_caption + 1
             else:
                 temp = naive_refence(item)
                 temp = input_equations(temp)
@@ -596,7 +629,8 @@ class chapter():
     def __init__(self, book_path, 
                  epigraphs = None,
                  footnotes = None,
-                 specials = None):
+                 specials = None,
+                 captions = None):
         self.Path = book_path
         self.References = ''
         if epigraphs is not None:
@@ -611,6 +645,10 @@ class chapter():
             self.Special_list = specials
         else: 
             self.include_list(self, mode = 'special')
+        if captions is not None:
+            self.Caption_list = captions
+        else: 
+            self.include_list(self, mode = 'captions')
 
     def include_list(self, mode, List = None):
         mode = mode.lower()
@@ -656,6 +694,20 @@ class chapter():
             print("Lista de termos selecionados:\n")
             for item in self.Special_list:
                 print(item)
+        elif mode == 'captions':
+            if List is None:
+                List = []
+                item = 'A'
+                while True:
+                    item = input('Entre com o trexo de inicio do texto das legendas ou [Enter] para encerrar:\n')
+                    if len(item) == 0:
+                        break
+                    List.append(item)
+            self.Captions_list = [item[:chapter.len_flag] for item in List]
+            self.Captions_list = List
+            print("Lista de termos selecionados:\n")
+            for item in self.Captions_list:
+                print(item)
 
     def chap_to_file(self, chap_pages_list, mode, 
                       path_to_save_en,
@@ -666,6 +718,7 @@ class chapter():
         Chap.add_footnotes(self.Footnote_list, chapter.len_flag)
         Chap.add_epigraph(self.Epigraph_list, chapter.len_flag)
         Chap.add_special(self.Special_list, chapter.len_flag)
+        Chap.add_captions(self.Caption_list, chapter.len_flag)
         Chap.Text = join_text_list(Chap.Text)
         Chap.Text = clean_text_list(Chap.Text)
         Chap.correct_text(language = 'en')
@@ -679,6 +732,8 @@ class chapter():
             Chap.translate_text(language = 'pt', mode = 'Footnote')
             Chap.translate_text(language = 'pt', mode = 'Epigraph')
             Chap.translate_text(language = 'pt', mode = 'Special')
+            Chap.translate_text(language = 'pt', mode = 'Captions')
+            Chap.correct_text(language = 'pt')
             Chap.write_latex()
             Chap.corpus_to_file(path = path_to_save_pt)
         elif mode == 'both':
@@ -689,6 +744,8 @@ class chapter():
             Chap.translate_text(language = 'pt', mode = 'Footnote')
             Chap.translate_text(language = 'pt', mode = 'Epigraph')
             Chap.translate_text(language = 'pt', mode = 'Special')
+            Chap.translate_text(language = 'pt', mode = 'Captions')
+            Chap.correct_text(language = 'pt')
             Chap.write_latex()
             Chap.corpus_to_file(path = path_to_save_pt)
         del Chap
@@ -734,16 +791,18 @@ class chapter():
                                     '.\n\n\n\t{color{blue}' + r'\1' + '}.',
                                     references_list)
             return references_list
- 
-        corpus = ''
-        for i in range(ref_init, ref_end + 1):
-            page = open_page(self.Path, i)
-            print("Analisando referencias contidas na página:\t", page)
-            for item in page:
-                corpus = corpus + references_list(file_path = item, language = ref_lang)
-            print('Pronto!')
-            close_pages(page_to_close = i, mode='page')
-        self.References = corpus
+        if ref_init is None:
+            self.References = ''    
+        else:
+            corpus = ''
+            for i in range(ref_init, ref_end + 1):
+                page = open_page(self.Path, i)
+                print("Analisando referencias contidas na página:\t", page)
+                for item in page:
+                    corpus = corpus + references_list(file_path = item, language = ref_lang)
+                print('Pronto!')
+                close_pages(page_to_close = i, mode='page')
+            self.References = corpus
 
     def text_to_file(self, path, file):
         print_to_file(path_to_save = path,
@@ -763,6 +822,8 @@ class chapter():
         for init, end, chap in zip(inits_list, ends_list, [i for i in range(len(inits_list))]):
             if not from_the_top:
                 if chap < get_from:
+                    path_to_save_en = chapter_transposed_path + '/cap_' + str(chap) + '.tex'
+                    path_to_save_pt = chapter_translated_path + '/cap_' + str(chap) + '.tex'
                     continue
             print("Escrevendo capitulo:\t" + str(chap))
             print("Entre as páginas {x} e {y}\n".format(x=init, y=end))
@@ -973,23 +1034,3 @@ class artigo():
 
 
 
-
-path = '/home/ricardo/Downloads/Has_Socialism_Failed-Analysis_of_Health_Indicators-Navarro_Vincente-1992.pdf'
-#open_page(doc_path = path, pages_to_open=0)
-#open_page(doc_path = path, pages_to_open=1)
-
-#path = 'data/temp/document-page0.pdf'
-#page_eval(path)
-
-test = artigo()
-#test.Title = 'HAS SOCIALISM FAILED? AN ANALYSIS OF HEALTH INDICATORS UNDER SOCIALISM'
-#test.Abstract = 'This article analyzes the widely held assumption in academia and the mainstream press that capitalism has proven superior to socialism in responding to human needs.'
-
-title_flag = 'HAS SOCIALISM'
-abstract_flag = 'This article analyzes'
-sections_flag_list = ['A CONTINENT', 'SOCIALISM IN', 'HOW TO EVALUATE', 'CONCLUSIONS', 'REFERENCES']
-sections_flag_list = [item[:10] for item in sections_flag_list]
-test.Author = 'Vicente Navarro'
-test.add_main_elements(path = path, title_flag = title_flag, abstract_flag = abstract_flag, sections_flag_list = sections_flag_list)
-test.write_article()
-test.corpus_to_file('data/temp/teste.tex')
